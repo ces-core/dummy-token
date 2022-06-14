@@ -3,36 +3,23 @@
 -include .env
 
 # install solc version
-# example to install other versions: `make solc 0_8_12`
-SOLC_VERSION := 0_8_12
-solc:; nix-env -f https://github.com/dapphub/dapptools/archive/master.tar.gz -iA solc-static-versions.solc_${SOLC_VERSION}
+# example to install other versions: `make solc 0_8_14`
+SOLC_VERSION := 0_8_14
+# solc:; nix-env -f https://github.com/dapphub/dapptools/archive/master.tar.gz -iA solc-static-versions.solc_${SOLC_VERSION}
 
-clean:; dapp clean
-update:; dapp update
+clean:; forge clean
+update:; forge update
 # Build & test
-build:; dapp build
-test-remote: check-api-key; dapp test --rpc-url $(call alchemy-url,goerli) # --ffi # enable if you need the `ffi` cheat code on HEVM
-test-local:; ETH_RPC_URL='http://localhost:8545' dapp test --rpc  # --ffi # enable if you need the `ffi` cheat code on HEVM
+build:; forge build
+test:; forge test # --ffi # enable if you need the `ffi` cheat code on HEVM
 
 # deploy
-flatten:; hevm flatten --source-file ${file} --json-file out/dapp.sol.json
+flatten:; forge flatten --source-file ${file} --json-file out/forge.sol.json
 
-TOKEN_NAME := "Dummy Token"
-TOKEN_SYMBOL := "DUMMY"
-TOKEN_DECIMALS := 18
-deploy: check-api-key; dapp create --rpc-url $(call alchemy-url,goerli) DummyToken '${TOKEN_NAME}' '${TOKEN_SYMBOL}' ${TOKEN_DECIMALS}
-
-check-api-key:
-ifndef ALCHEMY_API_KEY
-	$(error ALCHEMY_API_KEY is undefined)
-endif
-
-# Returns the URL to deploy to a hosted node.
-# Requires the ALCHEMY_API_KEY env var to be set.
-# The first argument determines the network (mainnet / rinkeby / ropsten / kovan / goerli)
-define alchemy-url
-https://eth-$1.alchemyapi.io/v2/${ALCHEMY_API_KEY}
-endef
+TOKEN_NAME ?= "Dummy Token"
+TOKEN_SYMBOL ?= "DUMMY"
+deploy:
+	./scripts/deploy.sh src/DummyToken.sol:DummyToken --verify --constructor-args ${TOKEN_NAME} ${TOKEN_SYMBOL}
 
 nodejs-deps:; yarn install
 lint:; yarn run lint
